@@ -1,7 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { getProducts } = require("../controllers/productController");
+const {
+  createProduct,
+  deleteProduct,
+  getProducts,
+  updateProduct,
+} = require("../controllers/productController");
+const { getUsers } = require("../controllers/userController");
 const {
   loginUser,
   logoutUser,
@@ -13,9 +19,18 @@ const {
   trackStep,
   getFunnelAnalytics,
 } = require("../controllers/trackingController");
-const { createOrder } = require("../controllers/orderController");
+const { createOrder, getOrders } = require("../controllers/orderController");
 
-router.get("/products", getProducts);
+router.get("/products", requireAuth, getProducts);
+router.post("/products", requireAuth, requireRole("admin"), createProduct);
+router.put("/products/:id", requireAuth, requireRole("admin"), updateProduct);
+router.delete(
+  "/products/:id",
+  requireAuth,
+  requireRole("admin"),
+  deleteProduct,
+);
+router.get("/users", requireAuth, requireRole("admin"), getUsers);
 router.post("/auth/register", registerUser);
 router.post("/auth/login", loginUser);
 router.post("/auth/refresh", refreshAccessToken);
@@ -27,6 +42,7 @@ router.get(
   requireRole("admin", "analyst"),
   getFunnelAnalytics,
 );
-router.post("/order", createOrder);
+router.get("/orders", requireAuth, requireRole("admin"), getOrders);
+router.post("/order", requireAuth, requireRole("client", "analyst"), createOrder);
 
 module.exports = router;

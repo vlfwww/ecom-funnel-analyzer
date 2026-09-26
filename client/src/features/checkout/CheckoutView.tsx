@@ -23,10 +23,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   };
 
   return (
-    <div className="mx-auto max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h2 className="mb-6 text-2xl font-bold text-slate-900">
+    <section className="mx-auto my-auto w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <h1 className="mb-7 text-center text-2xl font-bold text-slate-900">
         Оформление заказа
-      </h2>
+      </h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -35,7 +35,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           <input
             type="text"
             required
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
@@ -47,7 +47,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           <input
             type="text"
             required
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             value={formData.phone}
             onChange={(e) =>
               setFormData({ ...formData, phone: e.target.value })
@@ -61,7 +61,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           <textarea
             required
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             value={formData.address}
             onChange={(e) =>
               setFormData({ ...formData, address: e.target.value })
@@ -75,6 +75,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           Подтвердить заказ
         </button>
       </form>
-    </div>
+    </section>
   );
 };

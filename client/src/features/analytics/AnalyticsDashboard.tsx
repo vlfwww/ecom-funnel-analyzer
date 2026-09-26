@@ -7,26 +7,18 @@ interface FunnelRow {
 
 interface AnalyticsDashboardProps {
   data: FunnelRow[];
-  role: string;
 }
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
-  data,
-  role,
-}) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ data }) => {
   return (
-    <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h2 className="mb-2 text-2xl font-bold text-slate-900">
-        Дашборд визуального анализа воронки
-      </h2>
-      <p className="text-sm text-slate-500 mb-8">
-        Текущая роль доступа:{" "}
-        <span className="font-semibold text-sky-700">{role}</span>
-      </p>
+    <section className="mx-auto my-auto w-full max-w-4xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <h1 className="mb-7 text-center text-2xl font-bold text-slate-900">
+        Аналитика воронки
+      </h1>
 
       {data.length === 0 ? (
-        <p className="text-slate-500 text-center py-8">
-          Пока нет данных трекинга. Сделайте несколько переходов в каталоге!
+        <p className="rounded-2xl bg-slate-50 px-6 py-10 text-center text-slate-500">
+          Данных пока нет.
         </p>
       ) : (
         <div className="space-y-6">
@@ -56,6 +48,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 };

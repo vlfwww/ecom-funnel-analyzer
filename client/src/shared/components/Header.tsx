@@ -1,5 +1,14 @@
-import React from "react";
-import { ShoppingCart, BarChart2, Home, LogOut, User } from "lucide-react";
+import {
+  BarChart2,
+  Home,
+  LogOut,
+  ShoppingCart,
+  Users,
+  Store,
+  Package,
+  ClipboardList,
+} from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 interface HeaderProps {
   user: { email: string; role: string } | null;
@@ -8,78 +17,108 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+const navClassName = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+    isActive
+      ? "bg-sky-50 text-sky-700 font-semibold"
+      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+  }`;
+
+export const Header = ({
   user,
   cartCount,
   onNavigate,
   onLogout,
-}) => {
-  return (
-    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur md:px-8">
-      <div
-        className="flex cursor-pointer items-center gap-3"
-        onClick={() => onNavigate("catalog")}
-      >
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-lg font-bold text-sky-700">
-          N
-        </span>
-        <span>
-          <span className="block text-lg font-bold tracking-tight text-slate-900">
+}: HeaderProps) => (
+  <header className="sticky top-0 z-50 flex w-full justify-center border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
+    <div className="flex w-full max-w-7xl items-center justify-between">
+      <Link to="/" className="flex items-center gap-3 group">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-md shadow-sky-600/20 transition group-hover:bg-sky-700">
+          <Store size={22} />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-base font-bold tracking-tight text-slate-900 group-hover:text-sky-600 transition">
             Northstar Market
           </span>
-          <span className="block text-xs text-slate-500">
-            {user ? `Роль: ${user.role}` : "Техника для жизни"}
+          <span className="text-xs font-medium text-slate-500">
+            Техника для жизни
           </span>
-        </span>
-      </div>
+        </div>
+      </Link>
 
-      <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end md:gap-3">
-        <button
-          className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
-          onClick={() => onNavigate("catalog")}
-        >
-          <Home size={16} /> Каталог
-        </button>
+      <nav
+        aria-label="Основная навигация"
+        className="flex items-center gap-2.5"
+      >
+        <NavLink to="/" className={navClassName}>
+          <Home size={17} /> Главная
+        </NavLink>
 
-        {(!user || user.role === "client") && (
-          <button
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
-            onClick={() => onNavigate("cart")}
-          >
-            <ShoppingCart size={16} /> Корзина ({cartCount})
-          </button>
+        <NavLink to="/catalog" className={navClassName}>
+          <Store size={17} /> Каталог
+        </NavLink>
+
+        {user && user.role !== "admin" && (
+          <NavLink to="/cart" className={navClassName}>
+            <ShoppingCart size={17} /> Корзина
+            {cartCount > 0 && (
+              <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-600 px-1.5 text-xs font-bold text-white shadow-sm">
+                {cartCount}
+              </span>
+            )}
+          </NavLink>
         )}
 
         {(user?.role === "admin" || user?.role === "analyst") && (
-          <button
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
-            onClick={() => onNavigate("analytics")}
-          >
-            <BarChart2 size={16} /> Дашборд воронки
-          </button>
+          <NavLink to="/analytics" className={navClassName}>
+            <BarChart2 size={17} /> Аналитика
+          </NavLink>
         )}
 
+        {user?.role === "admin" && (
+          <>
+            <NavLink to="/admin/products" className={navClassName}>
+              <Package size={17} /> Товары
+            </NavLink>
+            <NavLink to="/admin/orders" className={navClassName}>
+              <ClipboardList size={17} /> Заказы
+            </NavLink>
+            <NavLink to="/users" className={navClassName}>
+              <Users size={17} /> Пользователи
+            </NavLink>
+          </>
+        )}
+
+        <div className="h-6 w-px bg-slate-200 mx-2 hidden sm:block" />
+
         {user ? (
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <User size={16} className="text-sky-600" />
-            <span className="text-sm text-slate-700">{user.email}</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 shadow-inner">
+            <div className="flex flex-col text-left">
+              <span className="max-w-35 truncate text-xs font-semibold text-slate-800">
+                {user.email}
+              </span>
+              <span className="text-[10px] uppercase font-bold text-sky-600 tracking-wider">
+                {user.role}
+              </span>
+            </div>
             <button
               onClick={onLogout}
               aria-label="Выйти"
-              className="ml-1 text-slate-400 transition hover:text-red-500"
+              title="Выйти"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-400 border border-slate-200 shadow-sm transition hover:bg-red-50 hover:text-red-600 hover:border-red-100"
             >
               <LogOut size={16} />
             </button>
           </div>
         ) : (
           <button
-            className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
+            className="rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-sky-600/20 transition hover:bg-sky-700 active:scale-95"
             onClick={() => onNavigate("auth")}
           >
             Войти / Регистрация
           </button>
         )}
-      </div>
-    </header>
-  );
-};
+      </nav>
+    </div>
+  </header>
+);

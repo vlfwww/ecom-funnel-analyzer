@@ -36,66 +36,71 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">
-        {isLogin ? "Вход в систему" : "Регистрация аккаунта"}
-      </h2>
+    <section className="mx-auto my-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-7 text-center">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+          Northstar Market
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          {isLogin ? "Вход в аккаунт" : "Создание аккаунта"}
+        </h1>
+      </div>
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Email:
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            Электронная почта
           </label>
           <input
             type="email"
             required
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            autoComplete="email"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Пароль:
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            Пароль
           </label>
           <input
             type="password"
             required
             minLength={8}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        {!isLogin && (
-          <p className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-800">
-            Новый аккаунт получит роль клиента. Учётные записи администраторов
-            создаются отдельно через базу данных.
-          </p>
-        )}
-
         <button
           type="submit"
-          className="w-full rounded-xl bg-sky-600 py-3 font-semibold text-white shadow-sm transition hover:bg-sky-700"
+          className="w-full rounded-xl bg-sky-600 py-3 font-semibold text-white shadow-sm transition hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
         >
           {isLogin ? "Войти" : "Зарегистрироваться"}
         </button>
       </form>
 
-      <p
-        className="mt-6 cursor-pointer text-center text-sm text-slate-500 transition hover:text-sky-700"
-        onClick={() => setIsLogin(!isLogin)}
+      <button
+        type="button"
+        className="mt-6 w-full text-center text-sm font-medium text-slate-500 transition hover:text-sky-700"
+        onClick={() => {
+          setIsLogin(!isLogin);
+          setError("");
+        }}
       >
         {isLogin
           ? "Нет аккаунта? Зарегистрируйтесь"
           : "Уже есть аккаунт? Войдите"}
-      </p>
-    </div>
+      </button>
+    </section>
   );
 };

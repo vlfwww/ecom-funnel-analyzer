@@ -10,10 +10,10 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onCheckout }) => {
   const totalPrice = cart.reduce((sum, i) => sum + Number(i.price), 0);
 
   return (
-    <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-6 text-2xl font-bold text-slate-900">
-        Корзина покупателя
-      </h2>
+    <section className="mx-auto my-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <h1 className="mb-7 text-center text-2xl font-bold text-slate-900">
+        Корзина
+      </h1>
       {cart.length === 0 ? (
         <p className="text-slate-500 py-8 text-center">Ваша корзина пуста</p>
       ) : (
@@ -43,6 +43,6 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onCheckout }) => {
           </button>
         </div>
       )}
-    </div>
+    </section>
   );
 };
