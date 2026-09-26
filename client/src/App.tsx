@@ -1,23 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
-import { ShoppingCart, BarChart2, Home } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Header } from "./shared/components/Header";
+import { AuthModal } from "./features/auth/AuthModal";
+import { CatalogView, type Product } from "./features/catalog/CatalogView";
+import { CartView } from "./features/cart/CartView";
+import { CheckoutView } from "./features/checkout/CheckoutView";
+import { AnalyticsDashboard } from "./features/analytics/AnalyticsDashboard";
+import {
+  apiFetch,
+  refreshSession,
+  setAccessToken,
+} from "./shared/api";
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image_url: string;
-  category: string;
-}
-
-interface FunnelAnalyticsRow {
+interface FunnelRow {
   step_name: string;
   unique_users: string | number;
-}
-
-interface OrderForm {
-  name: string;
-  phone: string;
-  address: string;
 }
 
 const getSessionUuid = (): string => {
@@ -32,45 +28,63 @@ const getSessionUuid = (): string => {
 const sessionUuid = getSessionUuid();
 
 export default function App() {
+  const [user, setUser] = useState<{ email: string; role: string } | null>(
+    null,
+  );
   const [view, setView] = useState<string>("catalog");
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<Product[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<FunnelRow[]>([]);
 
-  const [formData, setFormData] = useState<OrderForm>({
-    name: "",
-    phone: "",
-    address: "",
-  });
-  const [analyticsData, setAnalyticsData] = useState<FunnelAnalyticsRow[]>([]);
-
-  const stepStartTime = useRef<number>(Date.now());
+  const stepStartTime = useRef<number | null>(null);
 
   const trackStep = async (stepName: string, eventType: string = "view") => {
-    const timeSpent = Math.floor((Date.now() - stepStartTime.current) / 1000);
-    stepStartTime.current = Date.now();
-
+    const now = Date.now();
+    const timeSpent = stepStartTime.current
+      ? Math.floor((now - stepStartTime.current) / 1000)
+      : 0;
+    stepStartTime.current = now;
     try {
-      await fetch("http://localhost:5000/api/track", {
+      await apiFetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionUuid, stepName, eventType, timeSpent }),
       });
     } catch (e) {
-      console.error("Tracking error:", e);
+      console.error(e);
     }
   };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
+    let isMounted = true;
+
+    refreshSession()
+      .then((session) => {
+        if (isMounted && session) setUser(session.user);
+      })
+      .catch((err: unknown) => console.error("Session restore failed:", err));
+
+    apiFetch("/api/products")
       .then((res) => res.json())
       .then((data: Product[]) => setProducts(data))
       .catch((err) => console.error(err));
 
     trackStep("catalog", "view");
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const changeView = (newView: string, product: Product | null = null) => {
+    if (
+      newView === "analytics" &&
+      user?.role !== "admin" &&
+      user?.role !== "analyst"
+    ) {
+      alert("У вас нет прав для просмотра аналитики воронки!");
+      return;
+    }
     setView(newView);
     if (product) setSelectedProduct(product);
 
@@ -81,30 +95,29 @@ export default function App() {
     if (newView === "analytics") fetchAnalytics();
   };
 
-  const addToCart = (product: Product) => {
-    setCart([...cart, product]);
-    trackStep("cart", "click");
-    alert("Товар добавлен в корзину!");
-  };
-
   const fetchAnalytics = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/analytics/funnel");
-      const data: FunnelAnalyticsRow[] = await res.json();
+      const res = await apiFetch("/api/analytics/funnel");
+      if (!res.ok) {
+        throw new Error(`Analytics request failed with status ${res.status}`);
+      }
+      const data = await res.json();
       setAnalyticsData(data);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleOrderSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOrderSubmit = async (formData: {
+    name: string;
+    phone: string;
+    address: string;
+  }) => {
     trackStep("checkout_payment", "complete");
-
     const totalAmount = cart.reduce((sum, item) => sum + Number(item.price), 0);
 
     try {
-      await fetch("http://localhost:5000/api/order", {
+      const response = await apiFetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,7 +128,9 @@ export default function App() {
           address: formData.address,
         }),
       });
-
+      if (!response.ok) {
+        throw new Error(`Order request failed with status ${response.status}`);
+      }
       trackStep("success", "complete");
       setCart([]);
       setView("success");
@@ -125,243 +140,104 @@ export default function App() {
   };
 
   return (
-    <div>
-      <header>
-        <div className="logo" onClick={() => changeView("catalog")}>
-          5 ЭЛЕМЕНТ{" "}
-          <span style={{ fontSize: "14px", fontWeight: "normal" }}>
-            (Курсовая TS)
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: "15px" }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => changeView("catalog")}
-          >
-            <Home size={16} /> Каталог
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => changeView("cart")}
-          >
-            <ShoppingCart size={16} /> Корзина ({cart.length})
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => changeView("analytics")}
-          >
-            <BarChart2 size={16} /> Дашборд воронки
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#f7f9fc] font-sans text-slate-800">
+      <Header
+        user={user}
+        cartCount={cart.length}
+        onNavigate={changeView}
+        onLogout={() => {
+          apiFetch("/api/auth/logout", { method: "POST" }).catch((err) =>
+            console.error("Logout failed:", err),
+          );
+          setAccessToken(null);
+          setUser(null);
+          setView("catalog");
+        }}
+      />
 
-      <div className="container">
+      <main className="mx-auto max-w-7xl px-6 py-10 md:px-8">
+        {view === "auth" && (
+          <AuthModal
+            onLoginSuccess={(userData) => {
+              setUser(userData);
+              setView("catalog");
+            }}
+          />
+        )}
+
         {view === "catalog" && (
-          <div>
-            <h2>Каталог товаров</h2>
-            <div className="grid" style={{ marginTop: "20px" }}>
-              {products.map((prod) => (
-                <div key={prod.id} className="card">
-                  <img src={prod.image_url} alt={prod.name} />
-                  <div>
-                    <span style={{ fontSize: "12px", color: "#777" }}>
-                      {prod.category}
-                    </span>
-                    <h4 style={{ margin: "5px 0" }}>{prod.name}</h4>
-                    <p
-                      style={{
-                        color: "#cc0000",
-                        fontWeight: "bold",
-                        fontSize: "18px",
-                      }}
-                    >
-                      {prod.price} руб.
-                    </p>
-                  </div>
-                  <button
-                    className="btn"
-                    style={{ marginTop: "10px" }}
-                    onClick={() => changeView("product", prod)}
-                  >
-                    Подробнее
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <CatalogView
+            products={products}
+            onSelectProduct={(prod) => {
+              setSelectedProduct(prod);
+              changeView("product", prod);
+            }}
+          />
         )}
 
         {view === "product" && selectedProduct && (
-          <div className="card" style={{ flexDirection: "row", gap: "30px" }}>
+          <div className="mx-auto grid max-w-4xl grid-cols-1 items-center gap-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:grid-cols-2">
             <img
               src={selectedProduct.image_url}
               alt={selectedProduct.name}
-              style={{ width: "400px" }}
+              className="h-80 w-full rounded-2xl bg-slate-50 p-4 object-contain"
             />
             <div>
-              <h2>{selectedProduct.name}</h2>
-              <p style={{ color: "#777", margin: "10px 0" }}>
-                Категория: {selectedProduct.category}
-              </p>
-              <h3
-                style={{ color: "#cc0000", fontSize: "24px", margin: "15px 0" }}
-              >
+              <span className="text-xs font-semibold uppercase tracking-wider text-sky-700">
+                {selectedProduct.category}
+              </span>
+              <h2 className="text-2xl font-bold text-slate-800 mt-2 mb-4">
+                {selectedProduct.name}
+              </h2>
+              <p className="text-3xl font-extrabold text-slate-900 mb-6">
                 {selectedProduct.price} руб.
-              </h3>
-              <p>Описание товара, характеристики и условия гарантии.</p>
-              <br />
+              </p>
               <button
-                className="btn"
-                onClick={() => addToCart(selectedProduct)}
+                className="w-full rounded-xl bg-sky-600 py-3 font-semibold text-white shadow-sm transition hover:bg-sky-700"
+                onClick={() => {
+                  setCart([...cart, selectedProduct]);
+                  trackStep("cart", "click");
+                  alert("Товар добавлен в корзину!");
+                }}
               >
-                В корзину
+                Добавить в корзину
               </button>
             </div>
           </div>
         )}
 
         {view === "cart" && (
-          <div>
-            <h2>Корзина покупателя</h2>
-            {cart.length === 0 ? (
-              <p style={{ marginTop: "20px" }}>Ваша корзина пуста.</p>
-            ) : (
-              <div style={{ marginTop: "20px" }}>
-                {cart.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="card"
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <span>{item.name}</span>
-                    <span style={{ fontWeight: "bold" }}>
-                      {item.price} руб.
-                    </span>
-                  </div>
-                ))}
-                <h3>
-                  Итого: {cart.reduce((sum, i) => sum + Number(i.price), 0)}{" "}
-                  руб.
-                </h3>
-                <br />
-                <button className="btn" onClick={() => changeView("checkout")}>
-                  Перейти к оформлению
-                </button>
-              </div>
-            )}
-          </div>
+          <CartView cart={cart} onCheckout={() => changeView("checkout")} />
         )}
 
         {view === "checkout" && (
-          <div className="card" style={{ maxWidth: "600px", margin: "0 auto" }}>
-            <h2>Оформление заказа</h2>
-            <form
-              onSubmit={handleOrderSubmit}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "15px",
-                marginTop: "15px",
-              }}
-            >
-              <div>
-                <label>Ваше ФИО:</label>
-                <br />
-                <input
-                  type="text"
-                  required
-                  style={{ width: "100%", padding: "8px" }}
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label>Телефон:</label>
-                <br />
-                <input
-                  type="text"
-                  required
-                  style={{ width: "100%", padding: "8px" }}
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label>Адрес доставки:</label>
-                <br />
-                <textarea
-                  required
-                  style={{ width: "100%", padding: "8px" }}
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                />
-              </div>
-              <button type="submit" className="btn">
-                Подтвердить заказ
-              </button>
-            </form>
-          </div>
+          <CheckoutView onSubmitOrder={handleOrderSubmit} />
         )}
 
         {view === "success" && (
-          <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h2 style={{ color: "green" }}>Спасибо за заказ!</h2>
-            <p style={{ marginTop: "10px" }}>Заказ успешно оформлен.</p>
-            <br />
-            <button className="btn" onClick={() => changeView("catalog")}>
-              В каталог
+          <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 py-16 text-center shadow-sm">
+            <h2 className="mb-2 text-2xl font-bold text-emerald-700">
+              Заказ успешно оформлен!
+            </h2>
+            <p className="mb-6 text-slate-500">
+              Благодарим за покупку в Northstar Market.
+            </p>
+            <button
+              className="rounded-xl bg-sky-600 px-6 py-2.5 font-semibold text-white transition hover:bg-sky-700"
+              onClick={() => changeView("catalog")}
+            >
+              Вернуться в каталог
             </button>
           </div>
         )}
 
         {view === "analytics" && (
-          <div className="dashboard">
-            <h2>Дашборд визуального анализа воронки</h2>
-            <p style={{ color: "#777", marginBottom: "20px" }}>
-              Аналитика поведения пользователей (TypeScript)
-            </p>
-
-            {analyticsData.length === 0 ? (
-              <p>Нет данных. Совершите пару тестовых действий в магазине!</p>
-            ) : (
-              analyticsData.map((row, index) => {
-                const maxUsers = Math.max(
-                  ...analyticsData.map((d) => Number(d.unique_users)),
-                  1,
-                );
-                const percent = Math.round(
-                  (Number(row.unique_users) / maxUsers) * 100,
-                );
-                return (
-                  <div key={index} className="funnel-step">
-                    <span style={{ width: "180px", fontWeight: "bold" }}>
-                      {row.step_name}
-                    </span>
-                    <div className="funnel-bar-bg">
-                      <div
-                        className="funnel-bar-fill"
-                        style={{ width: `${percent}%` }}
-                      >
-                        {row.unique_users} сесс.
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <AnalyticsDashboard
+            data={analyticsData}
+            role={user?.role || "Гость"}
+          />
         )}
-      </div>
+      </main>
     </div>
   );
 }
